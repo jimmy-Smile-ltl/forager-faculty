@@ -1,0 +1,8 @@
+{
+  "name": "rsenv",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "sdenv": "^1.1.3"
+  }
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "key-1",
+    "key": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "status": "unknown",
+    "used": 0
+  },
+  {
+    "name": "key-2",
+    "key": "sk-yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+    "status": "unknown",
+    "used": 0
+  }
+]

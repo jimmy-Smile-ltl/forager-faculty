@@ -1,0 +1,62 @@
+# ===== 敏感配置（严禁提交）=====
+.env
+.env.*
+!.env.example
+
+# ===== LLM 令牌（真实密钥不提交，仅保留示例）=====
+token manager/tokens.json
+token manager/tokens.tmp.*
+token manager/*.xlsx
+token manager/*.log*
+token manager/sk检查结果.csv
+token manager/__pycache__/
+
+# ===== 采集数据输出（运行时生成）=====
+# Step 3 教师名录与 Step 4 教师详情产物不入库
+department teachers/output/
+teachers/*/
+!teachers/*.py
+!teachers/*.md
+!teachers/*.json
+!teachers/*.sh
+!teachers/scripts/
+!teachers/docs/
+tearchers raw data/
+complilation/
+
+# ===== 日志与运行时状态 =====
+*.log
+logs/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+.task_state/
+knowledge_nav_words.json
+knowledge_nav_words.json.lock
+
+# ===== 浏览器会话与 Cookie =====
+util/cookies/
+util/.chrome_profile/
+
+# ===== 依赖 =====
+node_modules/
+.venv/
+venv/
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*~
+
+# ===== 瑞数 nodenv 运行时产物（可重生成；保留 env.js 必需输入 xhr_proto.json / xhr_open_src.txt）=====
+util/rsenv/node_modules/
+util/rsenv/nodenv/*.log
+util/rsenv/nodenv/seq_mine.txt
+util/rsenv/nodenv/randlog_node.json
+util/rsenv/nodenv/win_forin_keys.json
+util/rsenv/nodenv/vm_mount_keys.txt
+util/rsenv/nodenv/jsdom_texts.json
+util/rsenv/nodenv/err_code.js
+util/rsenv/output/
