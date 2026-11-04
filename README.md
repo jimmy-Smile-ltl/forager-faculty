@@ -31,6 +31,7 @@
 - [快速开始](#快速开始)
 - [文档导航](#文档导航)
 - [数据边界](#数据边界)
+- [未来发展方向](#未来发展方向)
 - [目录结构](#目录结构)
 - [免责声明](#免责声明)
 - [许可证](#许可证)
@@ -62,26 +63,53 @@ Agent 闭环，人只需要定义什么算「采对了」。这也意味着框�
 
 ## 架构总览
 
-### 四阶段流水线
+### 四阶段流水线（全景大图）
 
-```
-Step 1  学校信息 ── colleges info/
-  │      输入: 教育部名单 / 掌上高考 / 学信网（公开源）
-  │      产出: unified_colleges.csv（2,952 校 · 34 列公开属性）
-  │      ＋ qs_oversea/：QS 2027 海外高校名单（1,504 所，官网 100% verified）
-  ▼
-Step 2  二级院系 ── colleges department/
-  │      输入: 学校官网 → orchestrator.py（分析→生成 spider→运行→评估→修复）
-  │      产出: depart_985211.csv（144 校 · 8,049 院系: 名称 + 官网 URL）
-  │      ★★★ 开源数据边界止于此处 ★★★
-  ▼
-Step 3  教师名录 ── department teachers/
-  │      输入: 院系官网师资页 → collect_phases.py（Phase 1-5）
-  │      产出: output/<学校>/<院系>/teachers.csv（姓名 + 详情页 URL，运行时生成）
-  ▼
-Step 4  教师详情 ── teachers/
-         输入: Step 3 名单 → download_stage.py（名单 QC + 差分下载）
-         产出: teachers_detail.csv（13 字段，运行时生成）+ 原始 HTML/PDF 存档
+```mermaid
+flowchart TD
+    subgraph S1["Step 1 · 学校信息（colleges info/）"]
+        direction TB
+        A1[教育部名单 2,952 校] --> M{merge_unified.py<br/>三源融合}
+        A2[掌上高考 2,897 校] --> M
+        A3[学信网 2,809 校] --> M
+        M --> A5["unified_colleges.csv<br/>2,952 校 · 34 列"]
+        A4["QS 2027 海外名单<br/>1,504 所 · 官网 100% verified"] --> A6["qs_oversea/ 独立文件"]
+    end
+    A5 --> B0{筛选<br/>985/211/双一流 144 校}
+    B0 --> B1
+    subgraph S2["Step 2 · 二级院系（colleges department/）"]
+        direction TB
+        B1[orchestrator.py<br/>页面结构分析] --> B2[LLM 生成院系 spider]
+        B2 --> B3{运行 + 评估}
+        B3 -- "FAIL 携带原因" --> B4[LLM 修复 spider ≤3 轮]
+        B4 --> B2
+        B3 -- PASS --> B5["depart_985211.csv<br/>144 校 · 8,049 院系 + 官网 URL"]
+    end
+    B5 --> D0["★ 开源数据边界止于此 ★"]
+    D0 --> C1
+    subgraph S3["Step 3 · 教师名录（department teachers/）"]
+        direction TB
+        C1[发现师资页] --> C2[取样 DOM / 链接 / 正文]
+        C2 --> C3[LLM 生成 spider.py ≤80 行]
+        C3 --> C4{硬门禁<br/>分页 / URL / 人名正则}
+        C4 -- "不过打回" --> C3
+        C4 --> C5[运行 → teachers.csv]
+        C5 --> C6{8 维评估器}
+        C6 -- "FAIL 结构化原因" --> C7[fix_loop.py 修复循环]
+        C7 --> C3
+        C6 -- PASS --> C8["名录落盘 .fix_done<br/>5,813 院系 · 405,583 人"]
+    end
+    C8 --> E1
+    subgraph S4["Step 4 · 教师详情（teachers/）"]
+        direction TB
+        E1[名单 QC + 原型路由] --> E2[差分下载 HTML / PDF / 头像]
+        E2 --> E3[提取 LLM 优先 · 规则备选]
+        E3 --> E4[13 字段交叉校验]
+        E4 --> E5["teachers_detail.csv<br/>359,147 行 · 83.3%"]
+    end
+    F["请求栈 smart_fetch 五级降级<br/>curl_cffi → iv8/nodenv/sdenv → 渲染 → CDP"] -.贯穿全部阶段.-> S2
+    F -.-> S3
+    F -.-> S4
 ```
 
 | 阶段 | 目录 | 职责 | 入口 |
@@ -208,6 +236,16 @@ uv run --project . python -m unittest discover -s tests
 一律在运行时生成，不随仓库分发**；仓库只包含经过验证的采集框架本身。
 发布前安全审计记录与提交前合规工作流见
 [docs/安全与数据边界.md](docs/安全与数据边界.md)。
+
+## 未来发展方向
+
+| 方向 | 现状（数据已就绪） | 待办（规划，未执行） |
+|---|---|---|
+| **海外优质高校** | QS 2027 名单已随仓库分发（`qs_oversea/`，1,504 所官网 100% verified） | 四阶段框架向海外官网适配：Faculty/School 院系命名、英文姓名与 Staff Directory、Cloudflare/Akamai 挑战 |
+| **国内普通学校** | `unified_colleges.csv` 已含 2,808 所双一流之外学校 | ① 补全 143 所缺官网 URL（当前覆盖 94.9%，复用 `qs_oversea/` 的搜索验证方法论）；② 整批进入四阶段管道（专科/职业院校师资页形态适配） |
+
+框架能力随案例库持续进化：每修复一类反常规站点，即沉淀为
+[docs/特殊网站结构案例库.md](docs/特殊网站结构案例库.md) 的新条目与提示词硬规则。
 
 ## 目录结构
 

@@ -37,6 +37,7 @@
 - [Quick Start](#quick-start)
 - [Documentation Index](#documentation-index)
 - [Data Boundary](#data-boundary)
+- [Roadmap](#roadmap)
 - [Repository Layout](#repository-layout)
 - [Disclaimer](#disclaimer)
 - [License](#license)
@@ -70,26 +71,53 @@ library: every newly fixed site type is a pit the next university skips (see
 
 ## Architecture Overview
 
-### 4-Stage Pipeline
+### 4-Stage Pipeline (full-process diagram)
 
-```
-Step 1  School info ──── colleges info/
-  │      Input:  MOE list / Gaokao portals / CHSI (public sources)
-  │      Output: unified_colleges.csv (2,952 schools · 34 public columns)
-  │      ＋ qs_oversea/: QS 2027 overseas list (1,504 schools, 100% website-verified)
-  ▼
-Step 2  Departments ─── colleges department/
-  │      Input:  university websites → orchestrator.py (analyze → generate spider → run → evaluate → repair)
-  │      Output: depart_985211.csv (144 schools · 8,049 departments: name + official URL)
-  │      ★★★ open-source data boundary ends here ★★★
-  ▼
-Step 3  Teacher roster ─ department teachers/
-  │      Input:  department faculty pages → collect_phases.py (Phases 1-5)
-  │      Output: output/<school>/<dept>/teachers.csv (name + detail URL, generated at runtime)
-  ▼
-Step 4  Teacher details ── teachers/
-         Input:  Step 3 roster → download_stage.py (roster QC + differential download)
-         Output: teachers_detail.csv (13 fields, generated at runtime) + raw HTML/PDF archive
+```mermaid
+flowchart TD
+    subgraph S1["Step 1 · School info (colleges info/)"]
+        direction TB
+        A1[MOE list 2,952] --> M{merge_unified.py<br/>3-source merge}
+        A2[Gaokao portal 2,897] --> M
+        A3[CHSI 2,809] --> M
+        M --> A5["unified_colleges.csv<br/>2,952 schools · 34 cols"]
+        A4["QS 2027 overseas list<br/>1,504 · website 100% verified"] --> A6["qs_oversea/ standalone"]
+    end
+    A5 --> B0{Filter<br/>985/211/Double-First-Class 144}
+    B0 --> B1
+    subgraph S2["Step 2 · Departments (colleges department/)"]
+        direction TB
+        B1[orchestrator.py<br/>structure analysis] --> B2[LLM generates dept spider]
+        B2 --> B3{Run + evaluate}
+        B3 -- "FAIL w/ reasons" --> B4[LLM repairs spider ≤3 rounds]
+        B4 --> B2
+        B3 -- PASS --> B5["depart_985211.csv<br/>144 schools · 8,049 depts + URLs"]
+    end
+    B5 --> D0["★ open-source data boundary ★"]
+    D0 --> C1
+    subgraph S3["Step 3 · Teacher rosters (department teachers/)"]
+        direction TB
+        C1[Discover faculty pages] --> C2[Sample DOM / links / text]
+        C2 --> C3[LLM generates spider.py ≤80 lines]
+        C3 --> C4{Hard gates<br/>pagination / URL / name regex}
+        C4 -- "reject → regen" --> C3
+        C4 --> C5[Run → teachers.csv]
+        C5 --> C6{8-dim evaluator}
+        C6 -- "FAIL w/ reasons" --> C7[fix_loop.py repair]
+        C7 --> C3
+        C6 -- PASS --> C8["roster .fix_done<br/>5,813 depts · 405,583 teachers"]
+    end
+    C8 --> E1
+    subgraph S4["Step 4 · Teacher details (teachers/)"]
+        direction TB
+        E1[Roster QC + archetype routing] --> E2[Differential download HTML / PDF / photo]
+        E2 --> E3[Extract LLM-first · rules fallback]
+        E3 --> E4[13-field cross-check]
+        E4 --> E5["teachers_detail.csv<br/>359,147 rows · 83.3%"]
+    end
+    F["Request stack smart_fetch 5-level<br/>curl_cffi → iv8/nodenv/sdenv → render → CDP"] -.spans all stages.-> S2
+    F -.-> S3
+    F -.-> S4
 ```
 
 | Stage | Directory | Responsibility | Entry point |
@@ -227,6 +255,17 @@ All runtime output directories (`colleges department/output/`,
 generated at runtime and never distributed**; the repository contains only the
 validated collection framework itself. The pre-release audit record and the
 pre-commit compliance workflow: [docs/安全与数据边界.md](docs/安全与数据边界.md).
+
+## Roadmap
+
+| Direction | Current state (data ready) | Planned (not yet executed) |
+|---|---|---|
+| **Overseas universities** | QS 2027 list shipped with the repo (`qs_oversea/`, 1,504 schools, website 100% verified) | Adapt the 4-stage framework to overseas sites: Faculty/School naming, English names & Staff Directories, Cloudflare/Akamai challenges |
+| **Domestic ordinary schools** | `unified_colleges.csv` already covers 2,808 schools beyond the Double-First-Class list | ① fill 143 missing official URLs (94.9% coverage today; reuse the search-verify methodology in `qs_oversea/`); ② run them through the 4-stage pipeline (vocational-college faculty pages need adaptation) |
+
+The framework keeps growing with its case library: every unconventional site
+fixed becomes a new entry in
+[docs/特殊网站结构案例库.md](docs/特殊网站结构案例库.md) and a hardened prompt rule.
 
 ## Repository Layout
 
