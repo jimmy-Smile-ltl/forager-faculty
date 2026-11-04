@@ -29,7 +29,9 @@
 ## Table of Contents
 
 - [Features](#features)
+- [Why Forager](#why-forager)
 - [Architecture Overview](#architecture-overview)
+- [Track Record](#track-record)
 - [Core Mechanisms](#core-mechanisms)
 - [Typical Site Cases](#typical-site-cases)
 - [Quick Start](#quick-start)
@@ -50,6 +52,21 @@
 | ✅ | **Verify results, never fake success** | Every output must pass the evaluator (8 dimensions + hard gates) to count: FAIL carries structured reasons driving retries (≤3 rounds) + rollback protection; 144-school department crawl at 100% pass rate, 8,049 departments averaging 99.3; 424 offline unit tests guard the framework itself |
 | 🔑 | **Dual-mode LLM integration** | Single token out of the box, zero config; optional token manager pool: auto-eviction of dead keys, round-robin allocation, sticky sessions |
 | 🛡 | **Production-grade runtime** | LLM circuit breaker, 3-tier resource guard, watchdog self-healing, failed-department freeze ledger |
+
+## Why Forager
+
+| Traditional crawling | Forager |
+|---|---|
+| One hardcoded set of CSS selectors per site; breaks on every redesign | LLM reads page samples and **generates extraction rules** (BeautifulSoup selectors + regex) — unseen sites get fresh rules on the spot |
+| Manual spot-checks find missing/wrong data after the fact | An **8-dimension evaluator** scores every output; FAIL carries structured reasons into a repair loop (≤3 rounds + rollback + deterministic fallback) |
+| Extraction is a black box; results don't reproduce; rules can't be audited | Rules are **≤80-line deterministic scripts**: same input, same output; zero-token re-runs; human-readable and editable |
+| One anti-bot wall and everything stops; maintenance is firefighting | **5-level degradation request stack** + three pure-CPU RiverSecurity solvers (iv8 / nodenv / sdenv), automatic fallback |
+
+In one line: **turn "how to write a crawler" into "how to judge a crawler"** —
+both rule generation and rule verification run in an agent loop; humans only define
+what "collected correctly" means. That also means the framework grows with its case
+library: every newly fixed site type is a pit the next university skips (see
+[Typical Site Cases](#typical-site-cases)).
 
 ## Architecture Overview
 
@@ -101,6 +118,24 @@ generate spider → run → evaluator scores multiple dimensions
 
 All four stages share this pattern; only the evaluation dimensions and spider
 shapes differ — see [docs/核心机制.md](docs/核心机制.md).
+
+## Track Record (full 144-school run)
+
+| Stage | Scale | Quality verification |
+|---|---|---|
+| Schools → departments | 2,952 schools filtered → 144 schools / **8,049 departments** (name + official URL) | 4-dimension evaluator pass rate **100%**, average score **99.3** (131 schools perfect) |
+| Departments → teacher rosters | **5,813 department rosters · 405,583 teachers** | 8-dimension evaluation + hard gates + repair loop; nothing lands without PASS |
+| Rosters → teacher details | **359,147 detail rows**, 83.3% with ≥1 of 13 fields | field-misalignment cross-checks; download/extract decoupled — re-extract without re-fetching |
+| Raw archive | **43 GB**: 375,564 HTML + 4,447 PDF + 67,883 photos | differential download — never re-fetch unchanged content |
+
+- 16 unconventional-site cases fixed and archived: names living in `title`
+  attributes (Tsinghua AI Institute), JS-rewritten links (PKU School of Economics),
+  a 43-page PDF roster (CQU-UC joint institute), a site-wide AES-GCM shell (ZUEL)…
+- **424 offline unit tests** guard the framework itself (no network / no LLM / no
+  browser required for a full regression run)
+- Methodology and verification system:
+  [docs/采集结果统计报告.md](docs/采集结果统计报告.md) (Chinese, with an
+  English summary at the top)
 
 ## Core Mechanisms
 
