@@ -547,7 +547,7 @@ def _search_url_fallback(school, dept, dead_url, d=None):
             except Exception:
                 return None
             cands = []
-            for _eng in ("baidu", "bing"):
+            for _eng in ("bing",):
                 try:
                     _html, _e = _browser_search(f"{school} {dept} 师资队伍",
                                                 engine=_eng)

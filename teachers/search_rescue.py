@@ -54,30 +54,6 @@ def _registered_domain(url: str) -> str:
     return ".".join(parts[-2:]) if len(parts) >= 2 else host
 
 
-def _backend_baidu(scraper, q: str, max_candidates: int = 3) -> list[str]:
-    """百度后端: 结果链接是加密跳转（/link?url=），带 Referer 跟随 302 解真实 URL。"""
-    from bs4 import BeautifulSoup
-
-    html = scraper.fetch_page("https://www.baidu.com/s?wd=" + q.replace(" ", "+"),
-                              timeout=15)
-    if not html:
-        return []
-    soup = BeautifulSoup(html, "lxml")
-    real: list[str] = []
-    seen: set[str] = set()
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        if "baidu.com/link" not in href or href in seen:
-            continue
-        seen.add(href)
-        loc = scraper.resolve_redirect(href, referer="https://www.baidu.com/")
-        if loc and loc.startswith("http") and loc not in real:
-            real.append(loc)
-        if len(real) >= max_candidates:
-            break
-    return real
-
-
 def _backend_bing(scraper, q: str, max_candidates: int = 3) -> list[str]:
     """Bing 后端: 结果链接被 /ck/a 或 /url 包装，解 u 参数取真实 URL。"""
     from bs4 import BeautifulSoup
@@ -177,7 +153,7 @@ def search_rescue_names(scraper, school: str, dept: str,
         q = f"{name} {school} {dept} 教师主页"
 
         hit = ""
-        for backend in (_backend_baidu, _backend_bing):
+        for backend in (_backend_bing,):
             try:
                 candidates = backend(scraper, q)  # 经节流门
                 if not candidates:

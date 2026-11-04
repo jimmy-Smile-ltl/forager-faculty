@@ -373,7 +373,7 @@ class UnifiedClient:
     def resolve_redirect(self, url: str, referer: str = "", timeout: int = 10) -> Optional[str]:
         """解析跳转目标（不跟随 302，返回 Location）。
 
-        用于搜索引擎加密跳转（百度 /link?url= 带 Referer 才 302 到真实页）。
+        用于搜索引擎加密跳转（部分引擎的 /link?url= 跳转需带 Referer 才 302 到真实页）。
         经统一代理/降级链的 curl_cffi 快路径。
         """
         headers = {"Referer": referer} if referer else {}
@@ -742,5 +742,5 @@ def get_client() -> UnifiedClient:
 
 if __name__ == "__main__":
     client = get_client()
-    html = client.fetch_text("https://www.baidu.com")
-    print(f"baidu: {len(html) if html else 0} chars")
+    html = client.fetch_text("https://example.com")
+    print(f"example: {len(html) if html else 0} chars")

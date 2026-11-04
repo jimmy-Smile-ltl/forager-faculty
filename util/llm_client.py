@@ -110,7 +110,7 @@ class SimpleLLM:
         deepseek:
           api_key: "sk-..."
           model: "deepseek-chat"
-          base_url: "https://api.deepseek.com/v1"
+          base_url: "https://<your-gateway>/v1"
 
         provider: anthropic
         anthropic:
@@ -269,10 +269,13 @@ class SimpleLLM:
 
         try:
             # Base URL: 环境变量优先于配置文件(12-factor, 与 _init_anthropic 同序)
-            # — .env 是用户配置的权威来源, 配置文件仅作补充
+            # — .env 是用户配置的权威来源, 配置文件仅作补充。
+            # 不设任何硬编码默认地址: 用户必须自行配置网关, 缺失即置不可用。
             base_url = (os.environ.get("LLM_BASE_URL")
-                        or api_cfg.get("base_url")
-                        or "https://api.deepseek.com/v1")
+                        or api_cfg.get("base_url"))
+            if not base_url:
+                self._set_thread_state(None, {}, False)
+                return
             # trust_env=False: LLM 请求强制直连, 不读 http_proxy/https_proxy 环境变量
             import httpx
             # 2026-09-20 用户指令: 取消 read timeout 强限制 — 网关超时多为

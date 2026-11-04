@@ -726,7 +726,7 @@ class TestDnsPrecheck(unittest.TestCase):
         self.assertIsNone(html)
 
     def test_reachable_domain_attempts_fetch(self):
-        # 真实域名（baidu.com 一定可解析）→ 不应被 DNS 预检短路。
+        # 真实域名（example.com 一定可解析）→ 不应被 DNS 预检短路。
         # 不实际请求（无网络测试），只验证预检放行到降级链:
         # 用 mock 掉 _http.fetch_text 确认被调用。
         from unittest import mock
@@ -735,7 +735,7 @@ class TestDnsPrecheck(unittest.TestCase):
         s._throttle = lambda: None
         s._http = mock.MagicMock()
         s._http.fetch_text.return_value = "<html>ok</html>"
-        out = s.fetch_page("https://www.baidu.com/x.htm")
+        out = s.fetch_page("https://example.com/x.htm")
         self.assertEqual(out, "<html>ok</html>")
         s._http.fetch_text.assert_called_once()
 
@@ -832,7 +832,7 @@ class TestFetchStatusAttr(unittest.TestCase):
         s._http.fetch_text.return_value = None
         s._http.last_status = 404
         with self.assertRaises(ValueError) as cm:
-            s.fetch_page("https://www.baidu.com/szdw/x.htm")
+            s.fetch_page("https://example.com/szdw/x.htm")
         self.assertIn("404", str(cm.exception))
 
     def test_retry_fast_fails_on_4xx(self):
@@ -858,7 +858,7 @@ class TestFetchStatusAttr(unittest.TestCase):
         s._http = mock.MagicMock()
         s._http.fetch_text.return_value = None
         s._http.last_status = 0
-        self.assertIsNone(s.fetch_page("https://www.baidu.com/y.htm"))
+        self.assertIsNone(s.fetch_page("https://example.com/y.htm"))
 
     def test_success_returns_html(self):
         from unittest import mock
@@ -869,7 +869,7 @@ class TestFetchStatusAttr(unittest.TestCase):
         s._http = mock.MagicMock()
         s._http.fetch_text.return_value = "<html>ok</html>"
         s._http.last_status = 200
-        self.assertEqual(s.fetch_page("https://www.baidu.com/y.htm"), "<html>ok</html>")
+        self.assertEqual(s.fetch_page("https://example.com/y.htm"), "<html>ok</html>")
 
 
 class TestJunkNameNavMenu(unittest.TestCase):

@@ -257,7 +257,7 @@ def _resolve_hospital_urls(departments: list[dict], school_website: str) -> list
                 if any(k in h2 for k in (".edu.cn", ".gov.cn")):
                     if not any(k in txt for k in ("官网", "网站", "首页", "医院", "门户")):
                         continue
-                if any(j in h2 for j in ("baidu", "weibo", "qq", "gov", "sina", "163")):
+                if any(j in h2 for j in ("baike", "weibo", "qq", "gov", "sina", "163")):
                     continue
                 if any(k in txt for k in ("官网", "官方网站", "网站首页", "首页")):
                     best = full

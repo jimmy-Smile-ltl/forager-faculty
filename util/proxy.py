@@ -214,7 +214,7 @@ if __name__ == "__main__":
     # test_url ="https://patentscope2.wipo.int/search/en/advancedSearch.jsf"
     # test_url="https://www.wipo.int/en/web/patentscope"
     # test_url = "https://www.ovid.com/"
-    test_url = "https://www.baidu.com/"
+    test_url = "https://example.com/"
     proxy = ProxyUtil(test_url=test_url)
     print(proxy.get_proxy())
     for retry in range(10):
