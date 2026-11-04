@@ -268,6 +268,7 @@ def _fetch_with_iv8_impl(url: str, timeout: float = 20) -> str:
         return ""
 
     cookies = dict(_load_cookie(host) or {})
+    solved_this_chain = False  # 本链是否解出过新 P cookie(用于判断应用层响应的语义)
     for _round in range(3):  # 经典瑞数最多 3 轮挑战(enable_ → P → 放行)
         html, status, headers = _fetch(url, timeout, cookies)
         if not html:
@@ -284,6 +285,15 @@ def _fetch_with_iv8_impl(url: str, timeout: float = 20) -> str:
                 _save_cookie(host, cookies)
             return html
         if not _is_challenge(html, status):
+            # 2026-11-04 艺术学院 skjd.htm 实锤: 412→解→404。404 是应用层
+            # 响应, 说明 cookie 已穿透瑞数、URL 本身已死(站方改版删页)。
+            # 此时落盘 cookie 成品(同域其他页快路径可用)并返回空串交上层 —
+            # 旧版把每轮中间态 cookie 无条件落盘, 失败链会把已存的有效缓存
+            # 覆盖成无效 P cookie(首页成功缓存被深页失败污染, 实测同域快
+            # 路径全 412); 现在落盘只发生在 ①200 真页 ②已解出且拿到应用层
+            # 响应 两处, 中间轮次绝不落盘。
+            if solved_this_chain and cookies:
+                _save_cookie(host, cookies)
             return ""  # 非挑战非200真页 → 交上层
         # iv8 链式执行生成本轮 cookie (种入已累计 cookie 供二轮 VM 使用)
         try:
@@ -293,5 +303,7 @@ def _fetch_with_iv8_impl(url: str, timeout: float = 20) -> str:
         if not new_cookies:
             return ""
         cookies.update(new_cookies)
-        _save_cookie(host, cookies)
+        solved_this_chain = True
+        # 注意: 此处不再落盘 — 中间态 P cookie 未必是终态(二轮 enable_ 循环),
+        # 落盘统一由上面的成功/应用层两处负责
     return ""

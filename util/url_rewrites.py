@@ -54,6 +54,12 @@ URL_FIX_RULES: list = [
     # 实测 200(4/4 随机样本验证), 纯域名改写。
     (re.compile(r"^csai\.whut\.edu\.cn$", re.I),
      lambda u: u.replace("csai.whut.edu.cn", "ai.whut.edu.cn", 1)),
+    # 2026-11-04 重庆大学艺术学院: 上游起点 URL 带 www 前缀
+    # (www.arts.cqu.edu.cn), 该子域 DNS 不存在(实测 curl 码6 解析失败),
+    # 真实站点在裸域 arts.cqu.edu.cn(无 www, 瑞数 412 可解, iv8 2s 通)。
+    # 纯域名改写, 路径保留(深页 404 由发现链从首页重找解决)。
+    (re.compile(r"^www\.arts\.cqu\.edu\.cn$", re.I),
+     lambda u: u.replace("www.arts.cqu.edu.cn", "arts.cqu.edu.cn", 1)),
 ]
 
 # ══════════════════════════════════════════════════════════════════
