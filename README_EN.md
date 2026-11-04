@@ -1,4 +1,4 @@
-# Forager Faculty 🎓
+# Forager Faculty 🎓 — LLM-Driven Adaptive Crawler for University Faculty Data
 
 **[简体中文](README.md)** | **English**
 

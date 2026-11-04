@@ -1,4 +1,4 @@
-# Forager Faculty 🎓
+# Forager Faculty 🎓 — LLM 驱动的自适应高校教师信息采集框架
 
 **简体中文** | **[English](README_EN.md)**
 
