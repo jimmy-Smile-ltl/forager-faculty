@@ -149,6 +149,12 @@ shapes differ — see [docs/核心机制.md](docs/核心机制.md).
 
 ## Track Record (full 144-school run)
 
+In one line: the framework ran the full collection chain **unattended** for
+**405,583 teachers** — starting from university homepages, auto-discovering
+departments, generating extraction rules on the spot, verifying level by level,
+and finally producing **359,147 rows of structured teacher details**, backed by
+a 43 GB raw-page archive.
+
 | Stage | Scale | Quality verification |
 |---|---|---|
 | Schools → departments | 2,952 schools filtered → 144 schools / **8,049 departments** (name + official URL) | 4-dimension evaluator pass rate **100%**, average score **99.3** (131 schools perfect) |
@@ -164,6 +170,24 @@ shapes differ — see [docs/核心机制.md](docs/核心机制.md).
 - Methodology and verification system:
   [docs/采集结果统计报告.md](docs/采集结果统计报告.md) (Chinese, with an
   English summary at the top)
+
+**Known limitations (honest note)** — residual adaptation gaps the framework is
+still shrinking:
+
+- **JS-rendered / pure-API sites**: teacher data that lives outside HTML (XHR
+  endpoints / JS arrays / deep iframe platforms). Four platform families
+  (tsites, Tongyuan, etc.) are adapted; the long tail remains
+- **Empty-template pages**: ~164 departments have navigation but no roster
+  structure; each needs a three-way check (subpages / JS endpoints / CDP render)
+- **RiverSecurity strict-tier walls**: 29 departments stay `blocked` as a
+  terminal verdict (network-layer issue; no further code investment)
+- **Login-walled sites**: ~4% of the corpus — site-side permissions; the
+  upstream roster itself is correct
+
+Inside the boundary, the evaluator guarantees quality: nothing lands on PASS
+without clearing the 8 dimensions + hard gates — no fake success. Every
+outside-boundary residual has a ledger entry; see the verification section of
+the stats report.
 
 ## Core Mechanisms
 
