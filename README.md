@@ -159,9 +159,9 @@ uv run --project . python -m unittest discover -s tests
 | [docs/LLM接入与令牌池.md](docs/LLM接入与令牌池.md) | LLM 接入双模式与令牌池 |
 | [docs/安全与数据边界.md](docs/安全与数据边界.md) | 发布审计记录、数据分级、合规工作流 |
 | [docs/采集结果统计报告.md](docs/采集结果统计报告.md) | 144 校全量运行的聚合统计 |
-| [`colleges info/README.md`](colleges info/README.md) | Step 1 学校信息（三源融合 + QS 海外名单） |
-| [`colleges department/README.md`](colleges department/README.md) | Step 2 二级院系 |
-| [`department teachers/README.md`](department teachers/README.md) | Step 3 教师名录（全景工作流） |
+| [`colleges info/README.md`](<colleges info/README.md>) | Step 1 学校信息（三源融合 + QS 海外名单） |
+| [`colleges department/README.md`](<colleges department/README.md>) | Step 2 二级院系 |
+| [`department teachers/README.md`](<department teachers/README.md>) | Step 3 教师名录（全景工作流） |
 | [`teachers/README.md`](teachers/README.md) | Step 4 教师详情（两步解耦）；`teachers/DESIGN.md`、`quality_criteria.md`、`dept_rule_format.md`、`concurrency_playbook.md`、`resource_strategy.md` |
 
 ## 数据边界

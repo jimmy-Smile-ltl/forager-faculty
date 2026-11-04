@@ -171,9 +171,9 @@ proxy / browser / anti-WAF / resource guard / pipeline, with comments).
 | [docs/LLM接入与令牌池.md](docs/LLM接入与令牌池.md) | LLM integration modes & token pool |
 | [docs/安全与数据边界.md](docs/安全与数据边界.md) | Release audit record, data tiering, compliance workflow |
 | [docs/采集结果统计报告.md](docs/采集结果统计报告.md) | Aggregate statistics of the 144-school full run |
-| [`colleges info/README.md`](colleges info/README.md) | Step 1 school info (3-source merge + QS overseas list) |
-| [`colleges department/README.md`](colleges department/README.md) | Step 2 departments |
-| [`department teachers/README.md`](department teachers/README.md) | Step 3 teacher roster (full workflow) |
+| [`colleges info/README.md`](<colleges info/README.md>) | Step 1 school info (3-source merge + QS overseas list) |
+| [`colleges department/README.md`](<colleges department/README.md>) | Step 2 departments |
+| [`department teachers/README.md`](<department teachers/README.md>) | Step 3 teacher roster (full workflow) |
 | [`teachers/README.md`](teachers/README.md) | Step 4 teacher details (two-stage decoupling); also `teachers/DESIGN.md`, `quality_criteria.md`, `dept_rule_format.md`, `concurrency_playbook.md`, `resource_strategy.md` |
 
 ## Data Boundary
