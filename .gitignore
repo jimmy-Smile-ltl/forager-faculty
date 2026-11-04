@@ -60,3 +60,8 @@ util/rsenv/nodenv/vm_mount_keys.txt
 util/rsenv/nodenv/jsdom_texts.json
 util/rsenv/nodenv/err_code.js
 util/rsenv/output/
+
+# QS 海外名单采集（colleges info/qs_oversea）
+colleges info/qs_oversea/.chrome_profile/
+colleges info/qs_oversea/.playwright/
+colleges info/qs_oversea/raw/*.log
