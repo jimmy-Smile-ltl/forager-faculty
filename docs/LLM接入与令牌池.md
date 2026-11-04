@@ -224,7 +224,7 @@ provider: deepseek      # 或 anthropic（默认）
 deepseek:
   api_key: "sk-..."     # 仍建议用环境变量, 这里只是兜底
   model: "deepseek-chat"
-  base_url: "https://api.deepseek.com/v1"
+  base_url: "https://<your-gateway>/v1"   # 填你自己的网关/官方地址
 ```
 
 ## 配置速查

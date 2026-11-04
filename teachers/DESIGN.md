@@ -25,7 +25,7 @@ Step 6   不通过 → 重试 ≤3 轮；数据源限制识别（纯名单主导
 | normal | 有 URL 且内容密度正常 | 常规管道 |
 | pdf_shell | 页面带 PDF 引用（苏迪播放器/iframe/链接） | PDF 检测+下载+自适应提取 |
 | empty_shell | 无 PDF 且内容样本标签密度≈0（北大） | 渲染兜底（DrissionPage/Playwright, 系级熔断）+ 空壳主导重试跳过 |
-| name_list_no_links | ≥50% 无 URL（上外/中山） | 搜索式发现（百度优先+Bing, 预算 ≤10 查询/系）+ 名单落盘 |
+| name_list_no_links | ≥50% 无 URL（上外/中山） | 搜索式发现（Bing, 预算 ≤10 查询/系）+ 名单落盘 |
 
 原型结论归档 site_registry.json，同校后续院系分析 warm-start。
 

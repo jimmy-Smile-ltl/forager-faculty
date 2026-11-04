@@ -12,17 +12,17 @@
 > LLM-driven adaptive crawler iterates its extraction rules based on failure
 > signals from its evaluator. Its collection target is **university faculty**:
 > a 4-stage pipeline (schools → departments → teacher rosters → teacher
-> details) collecting publicly published faculty information from Chinese
-> university websites, built around an **evaluate → fix → re-evaluate loop**:
+> details) collecting publicly published faculty information from university
+> websites, built around an **evaluate → fix → re-evaluate loop**:
 > the agent finds its own data-quality problems and repairs the spider with
 > structured reasons — no manual spot-checking or hand-written rules.
 >
 > **Open-source data boundary**: this repository distributes data only up to the
 > "department URL list" level (school attributes + department names / official
-> URLs). The **collection framework and mechanisms for teacher rosters and
-> teacher details are fully preserved**, but their data products are not
-> distributed with the repo — see [Data Boundary](#data-boundary). Aggregate
-> statistics of a full 144-school run:
+> URLs, plus the QS overseas university list). The **collection framework and
+> mechanisms for teacher rosters and teacher details are fully preserved**, but
+> their data products are not distributed with the repo — see
+> [Data Boundary](#data-boundary). Aggregate statistics of a full 144-school run:
 > [docs/采集结果统计报告.md](docs/采集结果统计报告.md) (Chinese, with an
 > English summary at the top).
 
@@ -31,13 +31,9 @@
 - [Features](#features)
 - [Architecture Overview](#architecture-overview)
 - [Core Mechanisms](#core-mechanisms)
-  - [The Evaluate-Fix-Re-evaluate Loop](#1-the-evaluate-fix-re-evaluate-loop-agent-kernel)
-  - [Adaptive Extraction Rules](#1b-adaptive-extraction-rules-the-llm-designs-rules-rules-do-the-extracting)
-  - [Adaptive Request Stack](#2-adaptive-request-stack-util)
-  - [Site Archetype Routing](#3-site-archetype-routing-step-4-preflight)
-  - [LLM Integration: Single Token / Token Pool](#4-llm-integration-single-token--dynamic-token-pool)
+- [Typical Site Cases](#typical-site-cases)
 - [Quick Start](#quick-start)
-- [Security & Data Boundary](#security--data-boundary)
+- [Documentation Index](#documentation-index)
 - [Data Boundary](#data-boundary)
 - [Repository Layout](#repository-layout)
 - [Disclaimer](#disclaimer)
@@ -63,6 +59,7 @@
 Step 1  School info ──── colleges info/
   │      Input:  MOE list / Gaokao portals / CHSI (public sources)
   │      Output: unified_colleges.csv (2,952 schools · 34 public columns)
+  │      ＋ qs_oversea/: QS 2027 overseas list (1,504 schools, 100% website-verified)
   ▼
 Step 2  Departments ─── colleges department/
   │      Input:  university websites → orchestrator.py (analyze → generate spider → run → evaluate → repair)
@@ -80,7 +77,7 @@ Step 4  Teacher details ── teachers/
 
 | Stage | Directory | Responsibility | Entry point |
 |---|---|---|---|
-| Step 1 | `colleges info/` | Merge 3 public sources into the national school list | per-source scrapers |
+| Step 1 | `colleges info/` | Merge public sources into the national school list + QS overseas list | per-source scrapers |
 | Step 2 | `colleges department/` | Extract departments + URLs from each school site | `orchestrator.py` |
 | Step 3 | `department teachers/` | Faculty pages → teacher roster | `collect_phases.py` / `evaluate_teachers.py` / `fix_loop.py` |
 | Step 4 | `teachers/` | Teacher profile pages → 13-field structured details | `download_stage.py` / `extract_all_details.py` |
@@ -93,9 +90,6 @@ guarantee "data exists ⟺ a runnable spider exists".
 
 ### Every Stage Runs the Same Agent Loop
 
-All four stages share one working pattern; only the evaluation dimensions and
-spider shapes differ:
-
 ```
 generate spider → run → evaluator scores multiple dimensions
     ▲                        │
@@ -105,185 +99,39 @@ generate spider → run → evaluator scores multiple dimensions
     └──── LLM repairs spider ←┘   (≤3 rounds; repeated failure → deterministic fallback template)
 ```
 
-- **Step 2**: `orchestrator.py` — page-structure analysis → LLM generates a
-  department spider → run → evaluate the department list
-- **Step 3**: `collect_phases.py` (find faculty pages → LLM generates spider →
-  run & verify → LLM evaluates → repair with reasons) → `evaluate_teachers.py`
-  8-dimension evaluation → `fix_loop.py` repair loop
-- **Step 4**: `download_stage.py` roster QC → `extract_all_details.py`
-  LLM-first extraction (rules as fallback) → 13-field cross-validation
+All four stages share this pattern; only the evaluation dimensions and spider
+shapes differ — see [docs/核心机制.md](docs/核心机制.md).
 
 ## Core Mechanisms
 
-### 1. The Evaluate-Fix-Re-evaluate Loop (Agent Kernel)
+Deep dives are split into dedicated documents (Chinese, each with an English
+summary at the top):
 
-Using Step 3 as the example (`department teachers/`; other stages are isomorphic):
+| Document | Covers |
+|---|---|
+| [docs/核心机制.md](docs/核心机制.md) | The evaluate-fix-re-evaluate loop (8-dimension table), adaptive extraction rules (LLM designs rules / hard gates / pattern library), site archetype routing |
+| [docs/瑞数反爬解决方案.md](docs/瑞数反爬解决方案.md) | The 5-level request stack, 3-layer adversarial model, the three pure-CPU solvers (iv8/nodenv/sdenv), cookie lifecycle, troubleshooting manual |
+| [docs/LLM接入与令牌池.md](docs/LLM接入与令牌池.md) | Single token / dynamic token pool, key resolution priority, failure switching, 3-tier allocation, circuit breaker |
 
-```
- spider.py ──run──▶ teachers.csv
-     ▲                    │
-     │                    ▼
-     │          evaluate_teachers.py (8 dimensions)
-     │             ├─ PASS ✅ → persist + mark .fix_done
-     │             └─ FAIL ❌ → structured failure reasons
-     │                    │
-     │                    ▼
-     │          fix_loop.py repair loop (≤ 3 rounds)
-     │             ├─ LLM reads failure reasons + page samples → improves spider
-     │             ├─ rollback protection: restore the old spider if the new one is worse
-     │             ├─ repeated LLM failure → deterministic template fallback (fix_generic.py)
-     │             └─ successful cases feed the knowledge base, reused across departments
-     │                    │
-     └──── repaired spider ◀┘
-              (back to run → re-evaluate, until PASS or a legitimate-empty terminal state)
-```
+## Typical Site Cases
 
-**The 8 evaluation dimensions** (FAIL is not just a boolean — every failure
-carries actionable reasons):
+Of 5,287+ department sites, the vast majority are standard CMS structures;
+a minority of unconventional sites were once wrongly judged "unreachable / no
+faculty / JS shell". Each case hardened into a repair mechanism — one
+representative per family:
 
-| # | Dimension | What it detects |
-|---|------|---------|
-| 1 | Invariant | a CSV exists ⟺ a runnable spider exists |
-| 2 | Name format | 2-4 char Chinese names / alphabetic foreign-teacher names |
-| 3 | Navigation words | hits a 320+ word NAV_WORDS list (column names mistaken for people) |
-| 4 | Discipline words | column terms like "Choral Conducting" / "Music Theory" leaking in |
-| 5 | Name concatenation | "X-某Technology" = name "X-某" + job-title suffix glued together |
-| 6 | URL structure | too many institutional pages = category pages mistaken for teacher pages |
-| 7 | Count sanity | strict recount of the faculty page; CSV < 30% of it → flagged too-low |
-| 8 | Legitimate-empty exemption | administrative units / no-faculty-section marked as legitimately empty, not killed |
-
-**Why this design**: crawler failure modes are endless (nav words as names,
-glued fields, missed pagination, JS shell pages, PDF rosters …) — you cannot
-enumerate rules for all of them. The evaluator formalizes "what collecting
-correctly means", and the LLM only does one thing: "read the reasons, fix the
-code". This separation of concerns lets the repair loop run unattended across
-entire universities.
-
-**The prompts were sedimented, not written**. Every `【2026-08-30 hardening】`
--style rule is backed by a class of real measured failures (missing names that
-live in `title` attributes, whole pages dumped into a single field, historical
-job titles mistaken for current ones …). Prompt templates interlock with the
-failure-case knowledge base (`knowledge/`): each time the repair loop discovers
-a new failure mode, it hardens it into a prompt rule so the next department
-skips the pit — **which is why the framework adapts to site structures it has
-never seen, instead of only working on the sites it was coded against**.
-
-### 1b. Adaptive Extraction Rules: the LLM Designs Rules, Rules Do the Extracting
-
-The "adaptive HTML reading" lands on a **generator, not an extractor**. For
-each new department:
-
-```
-faculty-page HTML
-  │  ① Sampling: DOM container structure (≤6 segments) + link samples (≤8)
-  │     + body text (800 chars)
-  ▼
-  ② LLM reads the samples → designs extraction rules → emits spider.py
-  │     · BeautifulSoup CSS selectors (container → name → detail URL)
-  │     · regex assists (URL-shape checks, title stripping, pager links)
-  │     · ≤80-line standalone script — deterministic, zero-token re-runs
-  ▼
-  ③ Hard gates (verify at generation time; fail → regenerate)
-  │     · page has pager links but spider has no pagination loop → reject
-  │     · after running: page has ≥10 teacher-level links but CSV URLs = 0 →
-  │       reject (no plain-text exemption)
-  │     · name-regex check: <80% valid 2-4-char Chinese names → score down;
-  │       header drift auto-normalized
-  ▼
-  ④ Run → teachers.csv → 8-dimension evaluator → fail-with-reasons retry (≤3)
-```
-
-**Why LLM-generated rules instead of LLM-per-page extraction**:
-
-| | LLM generates rules (this framework) | LLM extracts per page |
+| Site | Quirk | Countermeasure |
 |---|---|---|
-| Token cost for a 300-teacher department | 1 spider generation | 300 page extractions |
-| Re-run / incremental refresh | zero LLM cost, locally reproducible | pay again per page |
-| Result stability | deterministic script: same input, same output | sampling variance each run |
-| Auditability | rules are code — readable, editable | extraction is a black box |
-| Quality lever | evaluator watches the spider; rollback/repair | per-page fixes have no lever |
+| Chongqing University–UC Joint Co-op Institute | the roster lives in a **43-page PDF**; zero names in HTML, rendering can't help | dedicated PDF extraction |
+| Chongqing University, Civil Engineering | homepage is a **language-selector page**; image-only links, no anchor text | entry-selector follow (61→263 people) |
+| Peking University, School of Economics | static hrefs are **JS-rewritten relative links**; naive joins 404 | render to capture real hrefs |
+| Zhongnan University of Economics and Law | site-wide **AES-GCM shell** with no RiverSecurity markers; returned as success | pure-CPU shell cracking |
+| Chang'an University | every teacher gets a **`list.htm` detail page** (only 0.9% of 6,291 are real lists) | exemption heuristic |
+| Peking University, CS | **letter index overrides numeric pagination**; half the teachers missed | BFS pagination closure (26→133 people) |
 
-(Exception: Step 4 field extraction is LLM-per-page — deep semantic
-understanding of 13 fields has no stable rules to write; college-level rules
-remain the fallback when the LLM is unavailable, see `teachers/README.md`.)
-
-Extraction rules sediment across departments into a **pattern library**
-(`knowledge/teacher_patterns.json`, 8 page shapes: detail links / card
-containers / plain-text name+title / numbered 4-line groups / PDF roster
-tables / sub-page recursion …), injected as warm-start when generating the
-next spider for the same school.
-
-### 2. Adaptive Request Stack (`util/`)
-
-Single entry point `smart_fetch(url)`, 5-level automatic degradation, returns
-`(html, method)` with the level that hit:
-
-```
- URL
-  │  ① curl_cffi ——— browser TLS fingerprint (chrome131); one hop for WAF-free sites
-  │  ② iv8 ——————— pure-CPU V8 environment patch, solves application-layer
-  │                 RiverSecurity JS challenges (preferred cookie producer)
-  │  ③ nodenv / sdenv — Node environment patch (hand-written zero-dep / full jsdom)
-  │  ④ DrissionPage / Playwright —— headless rendering + RiverSecurity fallback
-  │  ⑤ CDP bridge to a resident browser (:9222) —— network-layer RiverSecurity + full JS
-  ▼
- (html, method)   —— all levels failed → blocked; system curl as TLS-fingerprint fallback
-```
-
-Supporting components:
-
-| Component | Location | Role |
-|---|---|---|
-| RiverSecurity handling | `handleRuishu.py` / `rs_cookie.py` / `iv8_rs.py` | auto-detect 412/202, `$_ts` markers; per-domain cookie cache + regeneration on invalidation |
-| TLS fingerprint rotation | `fingerprint_chain.py` | chrome/firefox/safari multi-fingerprint switching |
-| Browser pools | `drission_pool.py` / `cdp_util.py` | window×tab pools, resident CDP reuse, idle reaping (`browser_lifecycle.py`) |
-| Breakers & guards | `llm_gate.py` / `resource_guard.py` | LLM sliding-window circuit breaker; 3-tier (green/yellow/red) system-load concurrency control |
-
-> Full anti-RiverSecurity design — the 3-layer adversarial model, how the three
-> pure-CPU solvers (iv8 / nodenv / sdenv) compare, cookie lifecycle, concurrency
-> safety and a troubleshooting manual — see the dedicated doc
-> **[docs/瑞数反爬解决方案.md](docs/瑞数反爬解决方案.md)** (Chinese, with an
-> English summary at the top).
-
-### 3. Site Archetype Routing (Step 4 Preflight)
-
-The "traps" of teacher profile pages belong to a finite family. Before
-downloading, Step 4 classifies each department by preflight and routes it to a
-per-archetype strategy instead of a one-size-fits-all crawl:
-
-| Archetype | Signature | Strategy |
-|---|---|---|
-| `normal` | has URLs and normal content density | standard pipeline |
-| `pdf_shell` | page references PDFs (player/iframe/link) | PDF detection + download + adaptive extraction |
-| `empty_shell` | content-sample tag density ≈ 0 (JS shell) | rendering fallback + skip-retry when shells dominate |
-| `name_list_no_links` | ≥50% teachers lack detail URLs | search-based discovery (Baidu/Bing, ≤10 queries/dept) + roster persistence |
-
-### 4. LLM Integration: Single Token / Dynamic Token Pool
-
-| | Mode A (default): single token | Mode B (optional): token pool |
-|---|---|---|
-| Config | `.env`: `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | `token manager/tokens.json` with multiple keys |
-| Compatible with | Anthropic / DeepSeek / any OneAPI-style gateway | same |
-| Failure handling | errors stop the run | failed keys switch automatically; monthly quota probing, auto-eviction |
-| Allocation | — | round-robin + least-used-first; sticky sessions (same dept → same key, better prompt-cache hits) |
-| Backend | — | Redis atomic round-robin (`redis://localhost:6379/0`); JSON file fallback for single machines |
-
-```bash
-cp "token manager/tokens.example.json" "token manager/tokens.json"
-# edit in your keys, then:
-uv run --project . python "token manager/token_pool.py" check      # probe every key's quota
-uv run --project . python "token manager/token_pool.py" list       # show token status
-```
-
-The LLM client (`util/llm_client.py`) **auto-enables pool mode** when it
-detects `tokens.json` — no code changes needed.
-
-> Full LLM-layer design — key/base_url/model resolution priority, failure
-> switching and error classification, the pool's 3-tier allocation strategy
-> (session-sticky / dept-affinity / least-used), probing and self-healing,
-> two-layer concurrency semaphores, circuit breaker — see the dedicated doc
-> **[docs/LLM接入与令牌池.md](docs/LLM接入与令牌池.md)** (Chinese, with an
-> English summary at the top).
+Full case catalog (16 cases · 6 families + anti-misjudgment discipline):
+[docs/特殊网站结构案例库.md](docs/特殊网站结构案例库.md) (Chinese, with an
+English summary at the top).
 
 ## Quick Start
 
@@ -311,28 +159,29 @@ uv run --project . python -m unittest discover -s tests
 Outputs land in `department teachers/output/<school>/<dept>/teachers.csv` and
 `teachers/<school>/` (both `.gitignore`d — nothing is committed by accident).
 All tunable parameters are in `.env.example` (~50 entries, grouped by LLM /
-proxy / browser / anti-WAF / resource guard / pipeline, with comments).## Security & Data Boundary
+proxy / browser / anti-WAF / resource guard / pipeline, with comments).
 
-**Pre-release security audit** (each item executed before open-sourcing):
+## Documentation Index
 
-| Check | Result |
+| Document | Covers |
 |---|---|
-| Key leakage (`sk-`, API keys, tokens, passwords — full-repo scan) | ✅ zero hits; no real keys anywhere — everything is injected via `.env` / `tokens.json` (both gitignored) |
-| Intranet addresses (`*.baidu-int.com` / private IP ranges) | ✅ zero hits; gateway addresses come only from the `LLM_BASE_URL` env var, no defaults in code |
-| Teacher personal info (test fixtures, knowledge base, samples) | ✅ all pseudonymized / placeholder-ized (`某教师`, `example.edu.cn`, real phones zeroed) |
-| Hardcoded machine paths (`/Users/...`) | ✅ zero hits; everything derives from `Path(__file__)` |
-| Log & console output | ✅ keys always masked (first 8 chars + `...` + last 4, `mask_sk`) |
-
-**Data tiering**: repository distribution stops at the "department URL list"
-level; teacher-level data (rosters / details) can only be collected by users
-running the framework themselves, and all framework output directories are
-gitignored — there is no accidental-commit path.
+| [docs/核心机制.md](docs/核心机制.md) | Agent loop / rule generation / hard gates / archetype routing |
+| [docs/特殊网站结构案例库.md](docs/特殊网站结构案例库.md) | Unconventional site-structure catalog (16 cases · 6 families + discipline) |
+| [docs/瑞数反爬解决方案.md](docs/瑞数反爬解决方案.md) | Request stack & RiverSecurity countermeasures |
+| [docs/LLM接入与令牌池.md](docs/LLM接入与令牌池.md) | LLM integration modes & token pool |
+| [docs/安全与数据边界.md](docs/安全与数据边界.md) | Release audit record, data tiering, compliance workflow |
+| [docs/采集结果统计报告.md](docs/采集结果统计报告.md) | Aggregate statistics of the 144-school full run |
+| [`colleges info/README.md`](colleges info/README.md) | Step 1 school info (3-source merge + QS overseas list) |
+| [`colleges department/README.md`](colleges department/README.md) | Step 2 departments |
+| [`department teachers/README.md`](department teachers/README.md) | Step 3 teacher roster (full workflow) |
+| [`teachers/README.md`](teachers/README.md) | Step 4 teacher details (two-stage decoupling); also `teachers/DESIGN.md`, `quality_criteria.md`, `dept_rule_format.md`, `concurrency_playbook.md`, `resource_strategy.md` |
 
 ## Data Boundary
 
 | Level | Distributed with the repo? |
 |---|---|
 | School info (name / affiliation / 985/211 / rankings and other public attributes) | ✅ `colleges info/unified_colleges.csv` |
+| Overseas university list (QS 2027: name / rank / official website) | ✅ `colleges info/qs_oversea/qs_rankings_2027_with_website.csv` (1,504 schools, 100% website-verified) |
 | Department list (school → department name + department website URL) | ✅ `colleges department/depart_985211.csv` + `depart_985211.jsonl` |
 | Teacher roster (name + detail URL) | ❌ not distributed; run the `department teachers/` framework yourself |
 | Teacher details (13 fields + raw pages) | ❌ not distributed; run the `teachers/` framework yourself |
@@ -341,28 +190,25 @@ All runtime output directories (`colleges department/output/`,
 `department teachers/output/`, `teachers/<school>/`) are excluded via
 `.gitignore` — **spider scripts, evaluation reports and collected data are all
 generated at runtime and never distributed**; the repository contains only the
-validated collection framework itself.
+validated collection framework itself. The pre-release audit record and the
+pre-commit compliance workflow: [docs/安全与数据边界.md](docs/安全与数据边界.md).
 
 ## Repository Layout
 
 ```
 ├── colleges info/             # Step 1: school info (3-source merge, 2,952 schools)
+│   └── qs_oversea/            #   QS 2027 overseas list (1,504 schools + website verification chain)
 ├── colleges department/       # Step 2: departments (framework + 8,049 dept URLs — the open-source data boundary)
 ├── department teachers/       # Step 3: teacher-roster collection agent
 │   ├── collect_phases.py      #   main pipeline (find pages → gen spider → run → evaluate → repair)
 │   ├── evaluate_teachers.py   #   8-dimension evaluator
 │   ├── fix_loop.py            #   repair loop (rollback / resume / knowledge-base learning)
-│   ├── fix_generic.py         #   deterministic collector (fallback when LLM keeps failing)
 │   ├── templates/             #   spider templates + data contract (contract.py)
-│   ├── knowledge/             #   page-structure pattern knowledge base (self-evolving)
-│   └── script/                #   orchestration / self-healing / watchdog / reporting scripts
-├── teachers/                  # Step 4: teacher-details collection agent
-│   ├── download_stage.py      #   download stage (roster QC + differential download + archetype routing)
-│   ├── extract_all_details.py #   extract stage (LLM-first, rules as fallback)
-│   ├── detail_scraper.py      #   core scraper (PDF / rendering fallback / classification)
-│   └── scripts/               #   batch differential engine / per-dept rule tools
+│   └── knowledge/             #   page-structure pattern knowledge base (self-evolving)
+├── teachers/                  # Step 4: teacher-details collection agent (two-stage decoupling)
 ├── token manager/             # LLM token pool (optional load balancing, example structure only)
 ├── util/                      # shared request stack (smart_fetch 5-level / RiverSecurity / browser pools / LLM gateway)
+├── docs/                      # core mechanisms / request stack / LLM integration / security & boundary / stats report
 ├── tests/                     # 424 unit tests (run offline)
 ├── .env.example               # config template (~50 entries, commented)
 └── pyproject.toml             # uv project definition

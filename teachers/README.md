@@ -125,8 +125,8 @@ Step 6   不通过 → 重试 ≤3 轮; 数据源限制识别 → 跳过重试
 
 ## 反爬设计（瑞数 WAF）
 
-复用仓库根 `util/` 统一请求栈（Step 2/3 验证过的方案，细节见根 README
-[自适应请求栈](../README.md#2-自适应请求栈util)）：
+复用仓库根 `util/` 统一请求栈（Step 2/3 验证过的方案，细节见
+[瑞数反爬解决方案](../docs/瑞数反爬解决方案.md)）：
 
 1. **纯 curl_cffi 快路径**：无 WAF 站点秒回，不触发任何 cookie 逻辑
 2. **RsSpider**（`util/handleRuishu.py`）: 域名级 Cookie 缓存 + 失效自动重生成

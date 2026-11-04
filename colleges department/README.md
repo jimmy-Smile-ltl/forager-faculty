@@ -181,8 +181,8 @@ output/安徽大学/
 
 ## 反爬与请求降级
 
-复用 `util/smart_fetch.py` 统一请求栈（细节见根 README
-[自适应请求栈](../README.md#2-自适应请求栈util)）：
+复用 `util/smart_fetch.py` 统一请求栈（细节见
+[瑞数反爬解决方案](../docs/瑞数反爬解决方案.md)）：
 
 ```
 curl_cffi (impersonate chrome131)     → ~60% 学校直接通过
