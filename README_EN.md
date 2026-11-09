@@ -32,6 +32,7 @@
 - [Why Forager](#why-forager)
 - [Architecture Overview](#architecture-overview)
 - [Track Record](#track-record)
+- [Bonus Engineering Deliverables](#bonus-engineering-deliverables)
 - [Core Mechanisms](#core-mechanisms)
 - [Typical Site Cases](#typical-site-cases)
 - [Quick Start](#quick-start)
@@ -189,6 +190,17 @@ without clearing the 8 dimensions + hard gates — no fake success. Every
 outside-boundary residual has a ledger entry; see the verification section of
 the stats report.
 
+## Bonus Engineering Deliverables (reusable beyond this repo)
+
+Besides the collection framework itself, this project distilled two experience
+packages battle-tested across **5,000+ department sites** — reusable
+independently of this repository:
+
+| Deliverable | Covers | Doc |
+|---|---|---|
+| **RiverSecurity WAF + proxy solution** | 3-layer adversarial model, 5-level degradation chain, three pure-CPU solvers (iv8/nodenv/sdenv), cookie lifecycle & pollution detection, proxy tunnel integration | [docs/瑞数反爬解决方案.md](docs/瑞数反爬解决方案.md) (Chinese, English summary at top) |
+| **Browser management strategy** | flock-gated resident CDP singleton, watchdog-owned lifecycle, anti-fight-loop rules, tab/orphan reaping, personal-browser isolation, audit-log discipline | [docs/浏览器使用管理策略.md](docs/浏览器使用管理策略.md) (Chinese, English summary at top) |
+
 ## Core Mechanisms
 
 Deep dives are split into dedicated documents (Chinese, each with an English
@@ -254,7 +266,8 @@ proxy / browser / anti-WAF / resource guard / pipeline, with comments).
 |---|---|
 | [docs/核心机制.md](docs/核心机制.md) | Agent loop / rule generation / hard gates / archetype routing |
 | [docs/特殊网站结构案例库.md](docs/特殊网站结构案例库.md) | Unconventional site-structure catalog (16 cases · 6 families + discipline) |
-| [docs/瑞数反爬解决方案.md](docs/瑞数反爬解决方案.md) | Request stack & RiverSecurity countermeasures |
+| [docs/瑞数反爬解决方案.md](docs/瑞数反爬解决方案.md) | Request stack & RiverSecurity countermeasures (battle-tested on 5,000+ sites) |
+| [docs/浏览器使用管理策略.md](docs/浏览器使用管理策略.md) | Resident singleton / lifecycle / anti-fight-loop / resource governance |
 | [docs/LLM接入与令牌池.md](docs/LLM接入与令牌池.md) | LLM integration modes & token pool |
 | [docs/安全与数据边界.md](docs/安全与数据边界.md) | Release audit record, data tiering, compliance workflow |
 | [docs/采集结果统计报告.md](docs/采集结果统计报告.md) | Aggregate statistics of the 144-school full run |
