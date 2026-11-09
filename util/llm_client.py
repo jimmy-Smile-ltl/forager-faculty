@@ -54,8 +54,8 @@ _token_sems_lock = threading.Lock()
 # 连接错误不换(换模型无意义)。
 _LLM_READ_TIMEOUT = int(os.environ["LLM_SDK_TIMEOUT"]) if os.environ.get("LLM_SDK_TIMEOUT") else None  # None=无限
 _LLM_CONNECT_TIMEOUT = 15.0
-# 2026-09-20 网关官方模型名(oneapi /v1/models 实测): Gemini 网关暂无账号(503,
-# 时有时无), 按用户指令放最低优先级兜底
+# 2026-09-20 网关官方模型名(oneapi /v1/models 实测): Gemini 模型网关偶发 503
+# (时有时无), 按最低优先级兜底
 _MODEL_FALLBACKS = [m.strip() for m in os.environ.get(
     "LLM_MODEL_FALLBACKS",
     "GLM-5.3-Flash,Gemini 3.7 Flash").split(",") if m.strip()]

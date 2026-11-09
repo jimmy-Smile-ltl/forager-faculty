@@ -1980,16 +1980,18 @@ class DetailScraper:
 
     @staticmethod
     def _make_fast_llm():
-        """用 ANTHROPIC_SMALL_FAST_MODEL（DeepSeek-V4-Flash 级）创建快速 LLM 实例。
+        """用 ANTHROPIC_SMALL_FAST_MODEL（快速小模型档）创建快速 LLM 实例。
 
-        实测: Flash 1.5s vs Pro 7.1s vs GLM-Turbo 9.8s，Flash 质量相当且输出干净 JSON。
+        实测: 快速档 1.5s vs 大模型 7.1s vs 另一档 9.8s，快速档质量相当且输出干净 JSON。
         """
         import os as _os
         fast_model = (
             _os.environ.get("ANTHROPIC_SMALL_FAST_MODEL")
             or _os.environ.get("ANTHROPIC_DEFAULT_HAIKU_MODEL")
-            or "DeepSeek-V4-Flash"
         )
+        if not fast_model:
+            # 不猜默认模型名: 未配置快速档时返回 None, 调用方回退主模型
+            return None
         old = _os.environ.get("ANTHROPIC_MODEL")
         try:
             _os.environ["ANTHROPIC_MODEL"] = fast_model

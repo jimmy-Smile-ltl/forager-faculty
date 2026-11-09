@@ -3,11 +3,11 @@
 """
 oneapi SK 余额检查脚本
 
-读取 oneapi-团队sk汇总.xlsx（列: 姓名, sk密钥），只对「两列都有数据且格式正确（sk- 开头）」的密钥
+读取 SK 汇总表 xlsx（列: 名称, sk密钥），只对「两列都有数据且格式正确（sk- 开头）」的密钥
 发送一次最小 chat 请求（token 成本可忽略），判断当月额度是否用完。
 
 用法:
-    uv run --with openpyxl python check_sk_balance.py [xlsx路径] [--model DeepSeek-V4-Pro] [--workers 8]
+    uv run --with openpyxl python check_sk_balance.py [xlsx路径] [--model <你的模型>] [--workers 8]
 
 输出:
     - 控制台: 明细表格 + 汇总统计
@@ -141,8 +141,8 @@ def load_tasks(xlsx_path: str) -> list[dict]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="oneapi SK 余额检查")
-    parser.add_argument("xlsx", nargs="?", default="oneapi-团队sk汇总.xlsx",
-                        help="xlsx 路径(默认: oneapi-团队sk汇总.xlsx)")
+    parser.add_argument("xlsx", nargs="?", default="sk-keys.xlsx",
+                        help="xlsx 路径(默认: sk-keys.xlsx)")
     parser.add_argument("--model", default=DEFAULT_MODEL, help=f"测试用模型(默认: {DEFAULT_MODEL})")
     parser.add_argument("--workers", type=int, default=8, help="并发数(默认: 8)")
     parser.add_argument("--no-csv", action="store_true", help="不生成 CSV 报告")

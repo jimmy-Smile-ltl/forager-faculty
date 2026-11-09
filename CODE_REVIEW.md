@@ -22,7 +22,7 @@
 
 `fix_loop.py:380` 与 `fix_loop.py:467` 用 `subprocess.run(["python3", "spider.py"], ...)` 运行生成的 spider。
 
-生成的 spider 依赖 `bs4 / curl_cffi / requests`（见 `spider_template.py` 的 `FETCH_BLOCK`）。本机 `python3` 解析到 `/opt/homebrew/bin/python3`（Homebrew 系统解释器），实测 **不包含这些依赖**；项目按 CLAUDE.md 规范用 uv 管理环境。而 `fix_generic.py:378` 用的是 `sys.executable`（当前解释器 = uv venv python）——同一项目两种写法，`fix_loop` 是错的。
+生成的 spider 依赖 `bs4 / curl_cffi / requests`（见 `spider_template.py` 的 `FETCH_BLOCK`）。本机 `python3` 解析到 `/opt/homebrew/bin/python3`（Homebrew 系统解释器），实测 **不包含这些依赖**；项目按 uv 管理环境规范运行。而 `fix_generic.py:378` 用的是 `sys.executable`（当前解释器 = uv venv python）——同一项目两种写法，`fix_loop` 是错的。
 
 后果：在 uv 环境下跑 `fix_loop.py`，spider 子进程 ImportError → 无 teachers.csv → 每轮都 FAIL，循环完全不可用（表面症状会被 `except` 吞掉，只剩 "spider未生成teachers.csv"）。
 
