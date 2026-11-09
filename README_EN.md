@@ -329,11 +329,15 @@ Design details for each stage live in that directory's `README.md` / `DESIGN.md`
 
 ## Disclaimer
 
-- This framework is intended **only** for information published openly on
-  university websites. Respect each site's robots.txt, terms of service, and
-  applicable local laws; keep crawl rates and concurrency restrained (the
-  framework ships with throttling and resource guards — please do not raise
-  them to levels that stress the target sites)
+- This framework is intended **only for technical research and public-info
+  collection**: it collects information published openly on university websites.
+  Respect each site's robots.txt, terms of service, and applicable local laws;
+  keep crawl rates and concurrency restrained (the framework ships with
+  throttling and resource guards — please do not raise them to levels that
+  stress the target sites)
+- **Do not** use this framework (including its anti-WAF capabilities) to bypass
+  access controls, intrude into, disrupt, or damage target sites — the user
+  bears full legal responsibility for such misuse
 - Teacher personal information is legally protected (e.g., by China's Personal
   Information Protection Law). Storage, use, and sharing of any personal
   information you collect with this framework is **your** responsibility;
